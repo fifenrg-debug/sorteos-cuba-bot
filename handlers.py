@@ -66,8 +66,8 @@ def texto_instrucciones_retiro(monto):
         "`[Tu número de tarjeta]`\n"
         "`[Tu número de teléfono]`\n\n"
         "_Ejemplo:_\n"
-        "9224069997944679\n"
-        "52728871"
+        "92xxxxxxxxxxxx79\n"
+        "5xxxxxx1"
     )
 
 def boton_premio_recibido():
