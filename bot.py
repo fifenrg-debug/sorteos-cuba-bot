@@ -59,6 +59,21 @@ def callback_sorteo(call):
     )
     bot.send_message(call.message.chat.id, texto_numero, parse_mode="Markdown")
 
+# === PANEL DE ADMINISTRACIÓN / CIERRE COLOCADO ANTES DEL TEXTO GENERAL ===
+@bot.message_handler(commands=['cierre', 'admin'])
+def panel_cierre(message):
+    if message.chat.id != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ No tienes permisos para acceder a esta sección.")
+        return
+    
+    bot.send_message(
+        message.chat.id, 
+        "🛠️ **Panel de Administración - Cierre de Sorteos**\n\n"
+        "Selecciona de qué monto deseas cerrar el sorteo y ver el listado final de participantes:",
+        reply_markup=menu_cerrar_sorteo(),
+        parse_mode="Markdown"
+    )
+
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def recibir_texto_general(message):
     user_id = message.chat.id
@@ -168,20 +183,6 @@ def callback_admin_accion(call):
         bot.answer_callback_query(call.id, "Pago rechazado.")
         bot.send_message(user_id, "❌ Lo sentimos, tu comprobante de pago no pudo ser verificado. Por favor, contacta al soporte o intenta nuevamente.")
         bot.edit_message_caption(chat_id=call.message.chat.id, message_id=call.message.message_id, caption=call.message.caption + "\n\n❌ **ESTADO: RECHAZADO**", parse_mode="Markdown")
-
-@bot.message_handler(commands=['cierre', 'admin'])
-def panel_cierre(message):
-    if message.chat.id != ADMIN_ID:
-        bot.send_message(message.chat.id, "❌ No tienes permisos para acceder a esta sección.")
-        return
-    
-    bot.send_message(
-        message.chat.id, 
-        "🛠️ **Panel de Administración - Cierre de Sorteos**\n\n"
-        "Selecciona de qué monto deseas cerrar el sorteo y ver el listado final de participantes:",
-        reply_markup=menu_cerrar_sorteo(),
-        parse_mode="Markdown"
-    )
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("cerrar_"))
 def callback_cerrar_sorteo(call):
