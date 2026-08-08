@@ -107,3 +107,14 @@ def obtener_participantes_sorteo(monto_sorteo):
     participantes = cursor.fetchall()
     conn.close()
     return participantes
+
+def limpiar_sorteo(monto_sorteo):
+    conn = sqlite3.connect('sorteos.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE jugadas 
+        SET estado = 'finalizado' 
+        WHERE monto = ? AND estado = 'aprobado'
+    ''', (str(monto_sorteo),))
+    conn.commit()
+    conn.close()
