@@ -111,10 +111,10 @@ def obtener_participantes_sorteo(monto_sorteo):
 def limpiar_sorteo(monto_sorteo):
     conn = sqlite3.connect('sorteos.db')
     cursor = conn.cursor()
+    # Borramos por completo todas las jugadas asociadas a este monto de sorteo
     cursor.execute('''
-        UPDATE jugadas 
-        SET estado = 'finalizado' 
-        WHERE monto = ? AND estado = 'aprobado'
+        DELETE FROM jugadas 
+        WHERE monto = ?
     ''', (str(monto_sorteo),))
     conn.commit()
     conn.close()
