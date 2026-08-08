@@ -53,3 +53,24 @@ def menu_encuesta():
         InlineKeyboardButton("⭐ 5", callback_data="eval_5")
     )
     return markup
+
+# ==========================================
+# NUEVAS FUNCIONES PARA EL RETIRO Y CONFIRMACIÓN
+# ==========================================
+
+def texto_instrucciones_retiro(monto):
+    return (
+        f"💳 **Retirada de Premio**\n\n"
+        f"Por favor, escribe a continuación tu número de tarjeta y número de teléfono donde deseas que te realicemos la transferencia del premio neto del sorteo de **{monto} CUP**.\n\n"
+        "📋 **Estructura requerida (en dos líneas):**\n"
+        "`[Tu número de tarjeta]`\n"
+        "`[Tu número de teléfono]`\n\n"
+        "_Ejemplo:_\n"
+        "9224069997944679\n"
+        "52728871"
+    )
+
+def boton_premio_recibido():
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("✅ ¡Premio Recibido!", callback_data="premio_recibido"))
+    return markup
