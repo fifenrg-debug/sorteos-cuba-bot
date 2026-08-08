@@ -11,7 +11,8 @@ from database import (
     obtener_reporte_sorteo,
     obtener_participantes_sorteo,
     obtener_numeros_ocupados,
-    guardar_datos_retiro
+    guardar_datos_retiro,
+    limpiar_sorteo
 )
 from handlers import (
     menu_principal, 
@@ -20,7 +21,9 @@ from handlers import (
     menu_cerrar_sorteo,
     boton_girar_ruleta,
     boton_retirar_premio,
-    menu_encuesta
+    menu_encuesta,
+    texto_instrucciones_retiro,
+    boton_premio_recibido
 )
 
 TOKEN = "8517181201:AAFOKXvdF4kf5duav5jFxPzSYAmutl8kTG4"
@@ -93,13 +96,21 @@ def recibir_texto_general(message):
             parse_mode="Markdown"
         )
         
-        # Notificar al administrador sobre el retiro solicitado
+        # Notificar al administrador sobre el retiro solicitado (junto con el botón de premio recibido para dárselo al ganador después)
         aviso_admin = (
             f"🚨 **¡SOLICITUD DE RETIRO DE PREMIO!** 🚨\n\n"
             f"👤 **Usuario ID:** `{user_id}`\n"
             f"💳 **Datos de cobro proporcionados:**\n`{texto_usuario}`"
         )
         bot.send_message(ADMIN_ID, aviso_admin, parse_mode="Markdown")
+        
+        # Le enviamos el botón de confirmación de premio al ganador para cuando le realices la transferencia
+        bot.send_message(
+            user_id,
+            "👇 Una vez que hayas recibido el dinero de tu premio en tu cuenta, haz clic en el siguiente botón para confirmarlo:",
+            reply_markup=boton_premio_recibido(),
+            parse_mode="Markdown"
+        )
         return
 
     # Validar si es un número válido para el sorteo (00 al 99)
@@ -109,7 +120,6 @@ def recibir_texto_general(message):
             
         conn = sqlite3.connect('sorteos.db')
         cursor = conn.cursor()
-        # Buscamos primero en estado 'seleccionando', de lo contrario rescatamos la última jugada activa del usuario
         cursor.execute('SELECT monto FROM jugadas WHERE user_id = ? AND estado = "seleccionando" ORDER BY id DESC LIMIT 1', (user_id,))
         res = cursor.fetchone()
         
@@ -273,6 +283,9 @@ def callback_girar_ruleta(call):
     except Exception as e:
         bot.send_message(call.message.chat.id, resultado_final, parse_mode="Markdown")
 
+    # Limpiar el sorteo en la base de datos para que los números queden libres para el próximo ciclo
+    limpiar_sorteo(monto)
+
     # Notificar al ganador con el botón para retirar su premio
     try:
         mensaje_ganador_privado = (
@@ -284,7 +297,7 @@ def callback_girar_ruleta(call):
     except Exception as e:
         print(f"No se pudo enviar el mensaje privado al ganador: {e}")
         
-    bot.answer_callback_query(call.id, "¡Sorteo concluido con éxito!")
+    bot.answer_callback_query(call.id, "¡Sorteo concluido con éxito y base de datos reseteada!")
 
 # Manejar el clic en "Retirar mi Premio"
 @bot.callback_query_handler(func=lambda call: call.data.startswith("retirar_"))
@@ -294,10 +307,34 @@ def callback_retirar_premio(call):
     
     usuarios_retirando.add(user_id)
     bot.answer_callback_query(call.id, "¡Iniciando proceso de retiro!")
+    
+    # Usamos la estructura guiada de dos líneas
     bot.send_message(
         user_id,
-        "💳 **Retirada de Premio**\n\n"
-        f"Por favor, escribe a continuación tu **número de tarjeta o número de teléfono móvil** donde deseas que te realicemos la transferencia del premio neto del sorteo de {monto} CUP:",
+        texto_instrucciones_retiro(monto),
+        parse_mode="Markdown"
+    )
+
+# Manejar el clic en "Premio Recibido" por parte del ganador
+@bot.callback_query_handler(func=lambda call: call.data == "premio_recibido")
+def callback_premio_recibido(call):
+    user_id = call.message.chat.id
+    user_name = call.from_user.first_name
+    
+    bot.answer_callback_query(call.id, "¡Gracias por confirmar!")
+    
+    # Editar el mensaje del ganador para agradecerle
+    bot.edit_message_text(
+        text="🎉 ¡Excelente! Nos alegra mucho que hayas recibido tu premio con éxito. ¡Te esperamos en los próximos sorteos! 🍀",
+        chat_id=user_id,
+        message_id=call.message.message_id
+    )
+    
+    # Notificar al administrador (a ti) que el usuario confirmó su dinero
+    bot.send_message(
+        ADMIN_ID,
+        f"✅ **¡CONFIRMACIÓN DE PREMIO!**\n\n"
+        f"El usuario **{user_name}** (ID: `{user_id}`) ha confirmado que **ya recibió su premio** correctamente en su cuenta.",
         parse_mode="Markdown"
     )
 
